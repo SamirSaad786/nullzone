@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>NULLZONE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#020608;--deep:#060d14;--panel:#0a1520;--bdr:#0d2035;
+  --c:#00ffe1;--cg:rgba(0,255,225,.4);--cd:rgba(0,255,225,.15);
+  --m:#ff003c;--md:rgba(255,0,60,.15);--y:#ffe100;--g:#00ff88;
+  --tx:#7ab0cc;--td:#2a4a60;--ce:#080f18;--cb:#0f2540;--gl:#0c2030;
+  --SZ:min(42px,calc((100vw - 48px)/8));
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:'Share Tech Mono',monospace;color:var(--tx);user-select:none}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:99;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.06) 3px,rgba(0,0,0,.06) 4px)}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(var(--gl) 1px,transparent 1px),linear-gradient(90deg,var(--gl) 1px,transparent 1px);background-size:32px 32px;opacity:.4}
+
+/* layout */
+#app{position:relative;z-index:1;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;padding:8px 16px 6px;overflow:hidden;justify-content:space-between}
+
+/* top bar */
+#tb{width:100%;max-width:380px;display:flex;align-items:center;justify-content:space-between}
+.sl{font-size:9px;letter-spacing:.25em;color:var(--td)}
+#sd{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;color:var(--c);text-shadow:0 0 12px var(--cg);line-height:1;transition:color .1s}
+#sd.bump{color:#fff}
+#bd{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:var(--td);line-height:1}
+#ttl{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:var(--c);letter-spacing:.12em;text-shadow:0 0 16px var(--cg);cursor:pointer}
+
+/* xp / rank bar */
+#xpbar{width:100%;max-width:380px}
+#xphdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;font-size:9px}
+#xplabel{letter-spacing:.2em;color:var(--td)}
+#ranklabel{letter-spacing:.15em;color:var(--y);font-family:'Orbitron',monospace;font-size:9px}
+#xptrack{height:3px;background:var(--panel);border:1px solid var(--bdr);overflow:hidden}
+#xpfill{height:100%;width:0%;background:linear-gradient(90deg,var(--y),var(--g));transition:width .6s ease}
+
+/* threat bar */
+#ts{width:100%;max-width:380px}
+#th{display:flex;justify-content:space-between;margin-bottom:3px;font-size:9px}
+#tl{letter-spacing:.2em;color:var(--td)}
+#tn{letter-spacing:.15em;color:var(--m)}
+#tt{height:3px;background:var(--panel);border:1px solid var(--bdr);overflow:hidden}
+#tf{height:100%;width:0%;background:linear-gradient(90deg,var(--c),var(--y),var(--m));transition:width .3s}
+#tf.d{background:linear-gradient(90deg,var(--y),var(--m))}
+
+/* streak row */
+#sr{width:100%;max-width:380px;display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:.15em}
+#stk{color:var(--td)}
+#stk.on{color:var(--y);text-shadow:0 0 8px rgba(255,225,0,.5)}
+#cf{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:var(--y);letter-spacing:.1em;opacity:0;transition:opacity .3s}
+#cf.show{opacity:1}
+
+/* grid */
+#gw{border:1px solid var(--bdr);background:var(--deep);box-shadow:0 0 20px rgba(0,255,225,.05);flex-shrink:0}
+#gr{display:grid;grid-template-columns:repeat(8,var(--SZ));grid-template-rows:repeat(8,var(--SZ));gap:2px;padding:5px}
+.cell{width:var(--SZ);height:var(--SZ);background:var(--ce);border:1px solid var(--cb);border-radius:1px;transition:background .12s,box-shadow .12s;position:relative;overflow:hidden}
+.cell::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.04) 0%,transparent 60%);pointer-events:none}
+.fc{background:var(--c)!important;border-color:rgba(0,255,225,.6)!important;box-shadow:0 0 6px var(--cg),inset 0 0 8px rgba(0,255,225,.3)!important}
+.fm{background:var(--m)!important;border-color:rgba(255,0,60,.6)!important;box-shadow:0 0 6px rgba(255,0,60,.4)!important}
+.fy{background:var(--y)!important;border-color:rgba(255,225,0,.6)!important;box-shadow:0 0 6px rgba(255,225,0,.4)!important}
+.xc{background:#150508!important;border-color:rgba(255,0,60,.4)!important}
+.xc::before{content:'✕';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:rgba(255,0,60,.5);pointer-events:none}
+.xc::after{display:none}
+.lk{background:#0a1025!important;border-color:rgba(77,166,255,.5)!important}
+.lk::before{content:'🔒';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:7px;pointer-events:none}
+.lk::after{display:none}
+.hl{background:rgba(0,255,225,.14)!important;border-color:rgba(0,255,225,.6)!important}
+.ih{background:rgba(255,0,60,.14)!important;border-color:rgba(255,0,60,.6)!important}
+.cl{animation:clr .45s ease forwards}
+@keyframes clr{0%{background:var(--c);box-shadow:0 0 20px var(--c);transform:scale(1)}50%{background:#fff;box-shadow:0 0 30px #fff;transform:scale(1.08)}100%{background:var(--ce);box-shadow:none;transform:scale(1);border-color:var(--cb)}}
+.scl{animation:sclr .45s ease forwards}
+@keyframes sclr{0%{background:var(--y);box-shadow:0 0 20px var(--y);transform:scale(1)}50%{background:#fff;transform:scale(1.12)}100%{background:var(--ce);box-shadow:none;transform:scale(1)}}
+
+/* piece tray */
+#ps{width:100%;max-width:380px;display:flex;justify-content:space-around}
+.psl{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px;border:1px solid var(--bdr);background:var(--deep);cursor:pointer;flex:1;height:68px;transition:border-color .2s,background .2s}
+.psl.sel{border-color:var(--c);background:rgba(0,255,225,.05);box-shadow:0 0 10px rgba(0,255,225,.1)}
+.psl.used{opacity:.2;pointer-events:none}
+.pmg{display:grid;gap:2px}
+.pm{width:9px;height:9px;border-radius:1px}
+.pc2{background:var(--c);box-shadow:0 0 3px var(--cg)}
+.pm2{background:var(--m)}
+.py2{background:var(--y)}
+
+/* status */
+#stl{font-size:9px;letter-spacing:.2em;color:var(--td);text-align:center;min-height:12px}
+
+/* floating score */
+.pt{position:fixed;pointer-events:none;z-index:998;font-family:'Orbitron',monospace;font-weight:900;animation:fup .9s ease forwards}
+@keyframes fup{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-55px) scale(.8)}}
+
+/* threat popup */
+#tp{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.8);z-index:800;background:var(--panel);border:1px solid var(--m);padding:16px 22px;text-align:center;box-shadow:0 0 40px rgba(255,0,60,.3);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;min-width:190px}
+#tp.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#pi{font-size:24px;margin-bottom:3px}
+#pn{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:var(--m);letter-spacing:.1em;margin-bottom:3px}
+#pd{font-size:10px;color:var(--td)}
+
+/* surge banner */
+#sb{position:fixed;top:0;left:0;right:0;z-index:700;background:linear-gradient(90deg,transparent,rgba(255,225,0,.1),transparent);border-bottom:1px solid var(--y);padding:4px;text-align:center;font-family:'Orbitron',monospace;font-size:10px;font-weight:700;color:var(--y);letter-spacing:.2em;opacity:0;pointer-events:none;transition:opacity .3s}
+#sb.show{opacity:1}
+
+/* ── XP POP ── */
+#xppop{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.8);z-index:850;background:var(--panel);border:1px solid var(--y);padding:20px 32px;text-align:center;box-shadow:0 0 40px rgba(255,225,0,.3);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;min-width:220px}
+#xppop.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#xppop-rank{font-family:'Orbitron',monospace;font-size:18px;font-weight:900;color:var(--y);letter-spacing:.1em;margin-bottom:4px}
+#xppop-sub{font-size:10px;color:var(--td);letter-spacing:.15em}
+
+/* overlays */
+.ov{position:fixed;inset:0;z-index:900;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(2,6,8,.97);gap:14px;padding:28px;overflow-y:auto}
+.ov.hid{display:none}
+.ot{font-family:'Orbitron',monospace;font-weight:900;letter-spacing:.1em;text-align:center}
+.btn{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:.15em;padding:10px 26px;background:transparent;border:1px solid var(--c);color:var(--c);cursor:pointer;text-transform:uppercase;transition:background .2s,box-shadow .2s}
+.btn:hover,.btn:focus{background:var(--cd);box-shadow:0 0 14px var(--cg);outline:none}
+.btnm{border-color:var(--m)!important;color:var(--m)!important}
+.btnm:hover{background:var(--md)!important}
+.btny{border-color:var(--y)!important;color:var(--y)!important}
+.btny:hover{background:rgba(255,225,0,.1)!important}
+
+/* ── LEADERBOARD OVERLAY ── */
+#lo .ot{font-size:22px;color:var(--y)}
+.lb-mode-row{display:flex;gap:8px;width:100%;max-width:340px;justify-content:center}
+.lb-mode-btn{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.15em;padding:5px 12px;border:1px solid var(--bdr);background:transparent;color:var(--td);cursor:pointer;flex:1;text-transform:uppercase;transition:all .2s}
+.lb-mode-btn.active{border-color:var(--y);color:var(--y);background:rgba(255,225,0,.08)}
+.lb-table{width:100%;max-width:340px;border-collapse:collapse}
+.lb-table th{font-size:8px;letter-spacing:.2em;color:var(--td);padding:4px 6px;border-bottom:1px solid var(--bdr);text-align:left}
+.lb-table td{font-size:11px;padding:7px 6px;border-bottom:1px solid rgba(15,32,64,.5);color:var(--tx)}
+.lb-table tr.me td{color:var(--c)}
+.lb-table td:first-child{font-family:'Orbitron',monospace;color:var(--td);font-size:10px}
+.lb-table td.score-col{font-family:'Orbitron',monospace;color:var(--c);text-align:right}
+.lb-table td.rank-badge{text-align:right}
+.badge{display:inline-block;font-size:8px;letter-spacing:.1em;padding:2px 6px;border:1px solid}
+.badge.gold{color:var(--y);border-color:rgba(255,225,0,.4)}
+.badge.silver{color:#a0c4cc;border-color:rgba(160,196,204,.4)}
+.badge.bronze{color:#c49060;border-color:rgba(196,144,96,.4)}
+
+/* daily sector badge in game over */
+#daily-badge{font-size:9px;letter-spacing:.2em;color:var(--g);border:1px solid rgba(0,255,136,.3);padding:4px 12px;background:rgba(0,255,136,.05);display:none}
+
+/* score card overlay */
+#sc-ov{z-index:950}
+#sc-ov .ot{font-size:20px;color:var(--c)}
+#scorecard{background:var(--panel);border:1px solid var(--bdr);padding:20px 24px;width:280px;font-family:'Share Tech Mono',monospace}
+.sc-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;font-size:10px;letter-spacing:.15em}
+.sc-val{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:var(--c)}
+.sc-label{color:var(--td)}
+.sc-divider{height:1px;background:var(--bdr);margin:10px 0}
+.sc-rank-big{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;color:var(--y);text-align:center;margin:8px 0 4px}
+.sc-tier{font-size:9px;letter-spacing:.25em;color:var(--td);text-align:center;margin-bottom:12px}
+.sc-footer{font-size:8px;letter-spacing:.15em;color:var(--td);text-align:center;margin-top:10px}
+
+/* ── NAME ENTRY OVERLAY ── */
+#ne-ov{z-index:960}
+#ne-ov .ot{font-size:20px;color:var(--c)}
+#ne-score-big{font-family:'Orbitron',monospace;font-size:36px;font-weight:900;color:var(--c);text-align:center;text-shadow:0 0 20px var(--cg)}
+#ne-sub{font-size:9px;letter-spacing:.25em;color:var(--td);text-align:center}
+#ne-newbest{font-size:10px;letter-spacing:.2em;color:var(--y);text-align:center;display:none}
+.ne-input-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;max-width:280px}
+.ne-label{font-size:9px;letter-spacing:.25em;color:var(--td);align-self:flex-start}
+#ne-input{background:var(--deep);border:1px solid var(--c);color:var(--c);font-family:'Orbitron',monospace;font-size:16px;font-weight:700;letter-spacing:.12em;text-align:center;text-transform:uppercase;padding:10px 16px;width:100%;outline:none;box-shadow:0 0 10px rgba(0,255,225,.1);}
+#ne-input:focus{box-shadow:0 0 20px rgba(0,255,225,.25)}
+#ne-input::placeholder{color:var(--td);font-size:12px;letter-spacing:.1em}
+#ne-submit{margin-top:6px}
+.ne-skip{font-size:9px;letter-spacing:.2em;color:var(--td);cursor:pointer;padding:8px;border:none;background:none;font-family:'Share Tech Mono',monospace}
+.ne-skip:hover{color:var(--tx)}
+
+/* ── SECTOR THEMES ── */
+#gw{transition:box-shadow 2s,border-color 2s}
+#sector-announce{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.85);
+  z-index:810;opacity:0;pointer-events:none;text-align:center;transition:opacity .4s,transform .4s}
+#sector-announce.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.sa-num{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:.35em;margin-bottom:4px}
+.sa-name{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;letter-spacing:.08em}
+.sa-sub{font-size:9px;letter-spacing:.2em;margin-top:6px;opacity:.7}
+/* sector-specific cell colour vars injected via JS on body */
+body.s1 .fc{background:#00ffe1!important}
+body.s2 .fc{background:#4da6ff!important;border-color:rgba(77,166,255,.6)!important;box-shadow:0 0 6px rgba(77,166,255,.4)!important}
+body.s2 .fm{background:#4da6ff!important;border-color:rgba(77,166,255,.6)!important}
+body.s3 .fc{background:#aaff44!important;border-color:rgba(170,255,68,.6)!important;box-shadow:0 0 6px rgba(170,255,68,.4)!important}
+body.s3 .fm{background:#44ff88!important;border-color:rgba(68,255,136,.6)!important}
+body.s4 .fc{background:#ff6622!important;border-color:rgba(255,102,34,.6)!important;box-shadow:0 0 6px rgba(255,102,34,.4)!important}
+body.s4 .fm{background:#ffaa00!important;border-color:rgba(255,170,0,.6)!important}
+body.s4 .fy{background:#ff2244!important;border-color:rgba(255,34,68,.6)!important}
+body.s5 .fc{background:#cc44ff!important;border-color:rgba(204,68,255,.6)!important;box-shadow:0 0 6px rgba(204,68,255,.4)!important}
+body.s5 .fm{background:#ff44cc!important;border-color:rgba(255,68,204,.6)!important}
+body.s5 .cell{background:#0a0010!important}
+body.s6 .fc{background:#ffffff!important;border-color:rgba(255,255,255,.8)!important;box-shadow:0 0 10px rgba(255,255,255,.6)!important}
+body.s6 .fm{background:#aaaaaa!important}
+body.s6 .fy{background:#555555!important}
+body.s6 .cell{background:#050505!important;border-color:#1a1a1a!important}
+body.s6 .xc{background:#400000!important}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="tb">
+    <div><div class="sl">SCORE</div><div id="sd">0</div></div>
+    <div id="ttl" title="View leaderboard">NULLZONE</div>
+    <div style="text-align:right"><div class="sl">BEST</div><div id="bd">0</div></div>
+  </div>
+  <div id="xpbar">
+    <div id="xphdr"><span id="xplabel">SEASON XP</span><span id="ranklabel">BRONZE I</span></div>
+    <div id="xptrack"><div id="xpfill"></div></div>
+  </div>
+  <div id="ts">
+    <div id="th"><span id="tl">THREAT LEVEL</span><span id="tn">MONITORING...</span></div>
+    <div id="tt"><div id="tf"></div></div>
+  </div>
+  <div id="sr"><div id="stk">STREAK: 0</div><div id="cf"></div></div>
+  <div id="gw"><div id="gr"></div></div>
+  <div id="ps">
+    <div class="psl" id="s0"></div>
+    <div class="psl" id="s1"></div>
+    <div class="psl" id="s2"></div>
+  </div>
+  <div id="stl">SELECT A FRAGMENT TO PLACE</div>
+</div>
+
+<div id="tp"><div id="pi">⚡</div><div id="pn">EVENT</div><div id="pd">...</div></div>
+<div id="sb">⚡ SURGE ACTIVE — ×3 SCORE ⚡</div>
+<div id="sector-announce"><div class="sa-num" id="sa-num">SECTOR 01</div><div class="sa-name" id="sa-name">RESIDENTIAL ARCHIVE</div><div class="sa-sub" id="sa-sub">BREACH IN PROGRESS</div></div>
+<div id="xppop"><div id="xppop-rank">SILVER II</div><div id="xppop-sub">RANK UP!</div></div>
+
+<!-- TITLE SCREEN -->
+<div class="ov" id="os">
+  <div style="font-size:9px;letter-spacing:.3em;color:var(--m)">INFILTRATION PROTOCOL</div>
+  <div class="ot" style="font-size:clamp(42px,10vw,72px);color:var(--c);text-shadow:0 0 30px var(--cg);line-height:1.1">NULL<br>ZONE</div>
+  <div style="font-size:11px;color:var(--td);letter-spacing:.12em;text-align:center;line-height:1.9">Place fragments · Clear rows &amp; columns<br>Survive the corruption as long as you can</div>
+  <div style="font-size:9px;color:var(--td);letter-spacing:.15em;text-align:center;line-height:2.2">TAP PIECE → TAP GRID TO PLACE<br>FILL ROW OR COLUMN TO CLEAR IT<br>MULTI-CLEAR = BREACH BONUS</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+    <button class="btn" id="startb">INITIATE BREACH</button>
+    <button class="btn btny" id="dailyb">DAILY SECTOR</button>
+  </div>
+  <button class="btn" id="lbb" style="font-size:10px;padding:7px 20px">LEADERBOARD ↗</button>
+</div>
+
+<!-- GAME OVER SCREEN -->
+<div class="ov hid" id="og">
+  <div style="font-size:9px;letter-spacing:.3em;color:var(--m)">SYSTEM FAILURE</div>
+  <div class="ot" style="font-size:30px;color:var(--m);text-shadow:0 0 20px rgba(255,0,60,.5)">CONNECTION<br>TERMINATED</div>
+  <div style="display:flex;gap:28px;text-align:center">
+    <div><div style="font-size:9px;letter-spacing:.2em;color:var(--td)">SESSION</div><div id="fs" style="font-family:'Orbitron',monospace;font-size:24px;font-weight:900;color:var(--c)">0</div></div>
+    <div><div style="font-size:9px;letter-spacing:.2em;color:var(--td)">EFFICIENCY</div><div id="feff" style="font-family:'Orbitron',monospace;font-size:24px;font-weight:900;color:var(--y)">0</div></div>
+    <div><div style="font-size:9px;letter-spacing:.2em;color:var(--td)">BEST</div><div id="fb" style="font-family:'Orbitron',monospace;font-size:24px;font-weight:900;color:var(--td)">0</div></div>
+  </div>
+  <div style="display:flex;gap:16px;text-align:center">
+    <div><div style="font-size:9px;letter-spacing:.15em;color:var(--td)">XP EARNED</div><div id="fxp" style="font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--y)">+0</div></div>
+    <div><div style="font-size:9px;letter-spacing:.15em;color:var(--td)">SEASON RANK</div><div id="frank" style="font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--y)">BRONZE I</div></div>
+    <div><div style="font-size:9px;letter-spacing:.15em;color:var(--td)">DAILY RANK</div><div id="fdrank" style="font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--g)">—</div></div>
+  </div>
+  <div id="nb" style="font-size:10px;letter-spacing:.25em;color:var(--y);display:none">★ NEW RECORD BREACHED ★</div>
+  <div id="daily-badge">DAILY SECTOR COMPLETE</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+    <button class="btn btnm" id="restartb">RECONNECT</button>
+    <button class="btn btny" id="shareb">SHARE SCORE</button>
+  </div>
+  <button class="btn" id="lbb2" style="font-size:10px;padding:7px 20px">LEADERBOARD ↗</button>
+</div>
+
+<!-- LEADERBOARD OVERLAY -->
+<div class="ov hid" id="lo">
+  <div class="ot" style="font-size:22px;color:var(--y)">LEADERBOARD</div>
+  <div class="lb-mode-row">
+    <button class="lb-mode-btn active" id="lm-all" onclick="showLB('all')">ALL-TIME</button>
+    <button class="lb-mode-btn" id="lm-season" onclick="showLB('season')">SEASON</button>
+    <button class="lb-mode-btn" id="lm-daily" onclick="showLB('daily')">TODAY</button>
+  </div>
+  <table class="lb-table" id="lbtable">
+    <thead><tr><th>#</th><th>PLAYER</th><th class="score-col">SCORE</th><th class="rank-badge">TIER</th></tr></thead>
+    <tbody id="lbbody"></tbody>
+  </table>
+  <div style="font-size:9px;letter-spacing:.15em;color:var(--td);text-align:center">Scores stored locally · No account required</div>
+  <button class="btn" id="lcloseb">CLOSE</button>
+</div>
+
+<!-- SCORE CARD OVERLAY -->
+<div class="ov hid" id="sc-ov">
+  <div class="ot">SCORE CARD</div>
+  <div id="scorecard">
+    <div style="font-family:'Orbitron',monospace;font-size:20px;font-weight:900;color:var(--c);letter-spacing:.08em;margin-bottom:4px">NULLZONE</div>
+    <div style="font-size:8px;letter-spacing:.25em;color:var(--td);margin-bottom:14px">INFILTRATION REPORT</div>
+    <div class="sc-divider"></div>
+    <div class="sc-row"><span class="sc-label">BREACH SCORE</span><span class="sc-val" id="sc-score">0</span></div>
+    <div class="sc-row"><span class="sc-label">EFFICIENCY</span><span class="sc-val" id="sc-eff">0</span></div>
+    <div class="sc-row"><span class="sc-label">THREATS SURVIVED</span><span class="sc-val" id="sc-threats">0</span></div>
+    <div class="sc-row"><span class="sc-label">MAX STREAK</span><span class="sc-val" id="sc-streak">0</span></div>
+    <div class="sc-divider"></div>
+    <div class="sc-rank-big" id="sc-rank">BRONZE I</div>
+    <div class="sc-tier" id="sc-tier">SEASON RANK</div>
+    <div class="sc-divider"></div>
+    <div class="sc-footer" id="sc-date">—</div>
+    <div class="sc-footer">CAN YOU BREACH DEEPER?</div>
+  </div>
+  <div style="font-size:9px;letter-spacing:.15em;color:var(--td);text-align:center">Screenshot &amp; share with friends</div>
+  <div style="display:flex;gap:10px">
+    <button class="btn" id="sccloseb">CLOSE</button>
+    <button class="btn btny" id="sccopib">COPY SCORE</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  NULLZONE — Full Competitive Edition
+// ══════════════════════════════════════════════
+
+const RR=8, CC=8;
+
+// ── SEASON TIERS ──────────────────────────────
+const TIERS=[
+  {name:'BRONZE I',   xp:0},    {name:'BRONZE II',  xp:200},
+  {name:'BRONZE III', xp:400},  {name:'SILVER I',   xp:700},
+  {name:'SILVER II',  xp:1000}, {name:'SILVER III', xp:1400},
+  {name:'GOLD I',     xp:1800}, {name:'GOLD II',    xp:2400},
+  {name:'GOLD III',   xp:3000}, {name:'PLATINUM I', xp:3800},
+  {name:'PLATINUM II',xp:4800}, {name:'PLATINUM III',xp:6000},
+  {name:'ELITE',      xp:7500}, {name:'PHANTOM',    xp:10000},
+];
+
+// ── PIECES ────────────────────────────────────
+const PIECES=[
+  {s:[[1,1,1,1]],c:'c'},{s:[[1],[1],[1],[1]],c:'c'},
+  {s:[[1,0],[1,0],[1,1]],c:'c'},{s:[[0,1],[0,1],[1,1]],c:'m'},
+  {s:[[1,1,1],[0,1,0]],c:'c'},{s:[[0,1,1],[1,1,0]],c:'y'},
+  {s:[[1,1,0],[0,1,1]],c:'y'},{s:[[1,1],[1,1]],c:'c'},
+  {s:[[1,0],[1,1]],c:'m'},{s:[[0,1],[1,1]],c:'m'},
+  {s:[[1]],c:'c'},{s:[[1,1]],c:'c'},{s:[[1],[1]],c:'c'},
+  {s:[[1,1,1]],c:'y'},{s:[[1],[1],[1]],c:'y'},
+  {s:[[1,1],[1,0]],c:'c'},{s:[[1,1],[0,1]],c:'m'},
+  {s:[[0,1,0],[1,1,1],[0,1,0]],c:'y'},
+  {s:[[1,0],[1,0],[1,0],[1,1]],c:'c'},
+];
+
+// ── THREATS ───────────────────────────────────
+const THREATS=[
+  {id:'corrupt', name:'SECTOR CORRUPT',icon:'🔴',desc:'Cells become corrupted',w:40},
+  {id:'rowlock', name:'ROW LOCK',      icon:'🔒',desc:'A row is temporarily locked',w:25},
+  {id:'surge',   name:'SURGE ACTIVE', icon:'⚡',desc:'Next 2 clears score ×3!',w:15},
+  {id:'scramble',name:'SCRAMBLE',     icon:'🔄',desc:'Fragments reshuffled',w:15},
+  {id:'gift',    name:'FIREWALL GIFT',icon:'🟢',desc:'A corrupted cell is cleared!',w:5},
+];
+
+// ── SESSION STATE ─────────────────────────────
+var board,score,best,streak,maxStreak,selP,queue;
+var placed,nextThreatAt,surgeLeft,lockedRows,alive,nextT;
+var threatsThisSession, efficiencyBonus, isDaily;
+var audioCtx;
+var lastSessionData = null; // holds data between game over and name entry
+var currentSector = 0; // 0-5 (six sectors)
+
+// ── PERSISTENT STATE (localStorage) ──────────
+function getStore(k,def){ try{var v=localStorage.getItem(k);return v!==null?JSON.parse(v):def;}catch(e){return def;} }
+function setStore(k,v){ try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} }
+
+// Leaderboard entries: [{name,score,xp,date,daily}]
+var lb = { all:[], season:[], daily:[] };
+
+function loadLB(){
+  lb.all    = getStore('nz_lb_all',[]);
+  lb.season = getStore('nz_lb_season',[]);
+  lb.daily  = getStore('nz_lb_daily',[]);
+}
+function saveLB(){
+  setStore('nz_lb_all',   lb.all.slice(0,100));
+  setStore('nz_lb_season',lb.season.slice(0,50));
+  setStore('nz_lb_daily', lb.daily.slice(0,20));
+}
+
+// Season XP
+var seasonXP = getStore('nz_sxp',0);
+var playStreak= getStore('nz_play_streak',0); // consecutive days played
+
+function getTier(xp){
+  var t=TIERS[0];
+  for(var i=0;i<TIERS.length;i++){if(xp>=TIERS[i].xp)t=TIERS[i];}
+  return t;
+}
+function getNextTier(xp){
+  for(var i=0;i<TIERS.length;i++){if(TIERS[i].xp>xp)return TIERS[i];}
+  return null;
+}
+
+// ── SEEDED RNG (date-based for daily) ─────────
+function seededRand(seed){
+  // xorshift32
+  seed=(seed^(seed<<13))>>>0;
+  seed=(seed^(seed>>>17))>>>0;
+  seed=(seed^(seed<<5))>>>0;
+  return(seed>>>0)/4294967296;
+}
+function makeSeedFromDate(d){
+  return (d.getFullYear()*10000+((d.getMonth()+1)*100)+d.getDate())*7919;
+}
+
+function dailySeed(){
+  var d=new Date();
+  return makeSeedFromDate(d);
+}
+
+function seededPiece(seed){
+  var r=seededRand(seed);
+  return Math.floor(r*PIECES.length);
+}
+
+// ── AUDIO ─────────────────────────────────────
+function ac(){return audioCtx||(audioCtx=new(window.AudioContext||window.webkitAudioContext)())}
+function tone(f,t,d,v,dl){
+  dl=dl||0;v=v||.13;
+  try{var a=ac(),o=a.createOscillator(),g=a.createGain();
+  o.connect(g);g.connect(a.destination);o.type=t;o.frequency.value=f;
+  g.gain.setValueAtTime(0,a.currentTime+dl);
+  g.gain.linearRampToValueAtTime(v,a.currentTime+dl+.01);
+  g.gain.exponentialRampToValueAtTime(.001,a.currentTime+dl+d);
+  o.start(a.currentTime+dl);o.stop(a.currentTime+dl+d+.05);}catch(e){}
+}
+function sfxPlace() {tone(220,'square',.08,.08)}
+function sfxClear() {[330,440,550,660].forEach(function(f,i){tone(f,'sine',.15,.12,i*.05)})}
+function sfxBreach(){[440,550,660,880].forEach(function(f,i){tone(f,'sine',.2,.15,i*.04)})}
+function sfxThreat(){[200,150,100].forEach(function(f,i){tone(f,'sawtooth',.1,.1,i*.08)})}
+function sfxSurge() {[880,1100,1320].forEach(function(f,i){tone(f,'sine',.2,.15,i*.06)})}
+function sfxOver()  {[200,150,100,70].forEach(function(f,i){tone(f,'sine',.4,.12,i*.15)})}
+function sfxGift()  {[660,880,1100].forEach(function(f,i){tone(f,'sine',.15,.1,i*.07)})}
+function sfxBad()   {tone(80,'sawtooth',.1,.08)}
+function sfxRankUp(){[440,550,660,880,1100].forEach(function(f,i){tone(f,'sine',.25,.15,i*.06)})}
+
+
+// ── DARK AMBIENT GENERATIVE MUSIC ENGINE ─────────
+// Four evolving drone layers rooted in A1 (55Hz).
+// Each layer is a detuned sine pair with independent LFOs for pitch & amplitude.
+// Corruption adds a dissonant mid-layer that swells with corrupt cell count.
+// Sector depth modulates the base frequency and drone character.
+// No rhythm. No percussion. Only the sound of a dying system still breathing.
+
+var MUS = {
+  ctx: null,
+  masterGain: null,
+  layers: [],      // [{osc,osc2,ampLfo,pitchLfo,gainNode}]
+  corruptOsc: null, corruptGain: null,
+  active: false,
+  driftTimer: null,
+  BASE: 55         // A1 — changes with sector
+};
+
+function musInit() {
+  MUS.ctx = ac();
+  if (MUS.masterGain) { try { MUS.masterGain.disconnect(); } catch(e){} }
+  MUS.masterGain = MUS.ctx.createGain();
+  MUS.masterGain.gain.value = 0;
+  MUS.masterGain.connect(MUS.ctx.destination);
+  MUS.active = true;
+  MUS.layers = [];
+
+  // Sector tunes the base pitch — deeper sectors are lower and darker
+  var s = typeof currentSector !== 'undefined' ? currentSector : 0;
+  MUS.BASE = 55 * Math.pow(2, -s * 0.08); // each sector drops ~8% in pitch
+
+  // Four drone layers — root, fifth, octave, minor seventh
+  var intervals = [1, 1.5, 2, 1.778]; // root, P5, oct, m7
+  intervals.forEach(function(ratio, i) {
+    musAddDroneLayer(MUS.BASE * ratio, i);
+  });
+
+  // Fade master in slowly — 4 second intro
+  MUS.masterGain.gain.setValueAtTime(0, MUS.ctx.currentTime);
+  MUS.masterGain.gain.linearRampToValueAtTime(0.18, MUS.ctx.currentTime + 4);
+
+  // Corruption layer — starts silent, grows with corrupt cells
+  musStartCorruptLayer();
+
+  // Drift timer — re-evaluates corruption intensity every 3s
+  MUS.driftTimer = setInterval(musDrift, 3000);
+}
+
+function musAddDroneLayer(freq, idx) {
+  var ctx = MUS.ctx;
+
+  // Two slightly detuned oscillators per layer for natural beating
+  var osc1 = ctx.createOscillator();
+  var osc2 = ctx.createOscillator();
+  var gainNode = ctx.createGain();
+
+  osc1.type = 'sine';
+  osc2.type = 'sine';
+  osc1.frequency.value = freq;
+  osc2.frequency.value = freq;
+  osc1.detune.value =  (idx * 3);   // slight spread
+  osc2.detune.value = -(idx * 3 + 5);
+
+  // Amplitude LFO — slow breathing, each layer at a different rate
+  var ampLfo = ctx.createOscillator();
+  var ampLfoGain = ctx.createGain();
+  ampLfo.frequency.value = 0.04 + idx * 0.013;
+  ampLfoGain.gain.value = 0.025;
+  ampLfo.connect(ampLfoGain);
+  ampLfoGain.connect(gainNode.gain);
+
+  // Pitch LFO — micro-tonal drift
+  var pitchLfo = ctx.createOscillator();
+  var pitchLfoGain = ctx.createGain();
+  pitchLfo.frequency.value = 0.02 + idx * 0.007;
+  pitchLfoGain.gain.value = freq * 0.003; // 0.3% pitch drift
+  pitchLfo.connect(pitchLfoGain);
+  pitchLfoGain.connect(osc1.frequency);
+  pitchLfoGain.connect(osc2.frequency);
+
+  // Base volume — lower layers louder, higher layers more transparent
+  var baseVol = [0.09, 0.07, 0.05, 0.04][idx] || 0.04;
+  gainNode.gain.setValueAtTime(baseVol, ctx.currentTime);
+
+  osc1.connect(gainNode);
+  osc2.connect(gainNode);
+  gainNode.connect(MUS.masterGain);
+
+  [osc1, osc2, ampLfo, pitchLfo].forEach(function(o){ o.start(); });
+  MUS.layers.push({ osc1:osc1, osc2:osc2, ampLfo:ampLfo, pitchLfo:pitchLfo, gain:gainNode });
+}
+
+function musStartCorruptLayer() {
+  var ctx = MUS.ctx;
+  MUS.corruptOsc = ctx.createOscillator();
+  MUS.corruptGain = ctx.createGain();
+  // Tritone above base — most dissonant interval
+  MUS.corruptOsc.type = 'sawtooth';
+  MUS.corruptOsc.frequency.value = MUS.BASE * 1.414;
+  MUS.corruptOsc.detune.value = 25; // quarter-tone sharp — alien
+  MUS.corruptGain.gain.value = 0;
+  MUS.corruptOsc.connect(MUS.corruptGain);
+  MUS.corruptGain.connect(MUS.masterGain);
+  MUS.corruptOsc.start();
+}
+
+function musDrift() {
+  if (!MUS.active || !MUS.ctx || !alive) return;
+  // Count corrupt cells — drives dissonant layer volume
+  var corruptCount = 0;
+  if (typeof board !== 'undefined') {
+    for (var r = 0; r < RR; r++)
+      for (var c = 0; c < CC; c++)
+        if (board[r][c] === 'X') corruptCount++;
+  }
+  var corruptVol = Math.min(corruptCount / 20, 1) * 0.06;
+  if (MUS.corruptGain) {
+    MUS.corruptGain.gain.setValueAtTime(MUS.corruptGain.gain.value, MUS.ctx.currentTime);
+    MUS.corruptGain.gain.linearRampToValueAtTime(corruptVol, MUS.ctx.currentTime + 1.5);
+  }
+  // Master breathe — subtle volume oscillation mapped to threat proximity
+  var threatPct = typeof nextThreatAt !== 'undefined' && nextThreatAt > 0
+    ? Math.min(placed / nextThreatAt, 1) : 0;
+  var targetMaster = 0.14 + threatPct * 0.06;
+  if (MUS.masterGain) {
+    MUS.masterGain.gain.setValueAtTime(MUS.masterGain.gain.value, MUS.ctx.currentTime);
+    MUS.masterGain.gain.linearRampToValueAtTime(targetMaster, MUS.ctx.currentTime + 2);
+  }
+}
+
+function musStop() {
+  MUS.active = false;
+  clearInterval(MUS.driftTimer);
+  MUS.driftTimer = null;
+  if (!MUS.ctx) return;
+  var t = MUS.ctx.currentTime;
+  if (MUS.masterGain) {
+    MUS.masterGain.gain.setValueAtTime(MUS.masterGain.gain.value, t);
+    MUS.masterGain.gain.linearRampToValueAtTime(0, t + 3);
+  }
+  // Stop all oscillators after fade
+  var toStop = [];
+  MUS.layers.forEach(function(l){ toStop.push(l.osc1,l.osc2,l.ampLfo,l.pitchLfo); });
+  if (MUS.corruptOsc) toStop.push(MUS.corruptOsc);
+  toStop.forEach(function(o){ try{ o.stop(t+3.2); }catch(e){} });
+  MUS.layers = [];
+}
+
+// Sector transition — retune drones to new depth
+function musRetune(newBase) {
+  if (!MUS.active || !MUS.ctx) return;
+  MUS.BASE = newBase;
+  var intervals = [1, 1.5, 2, 1.778];
+  var t = MUS.ctx.currentTime;
+  MUS.layers.forEach(function(l, idx) {
+    var targetFreq = newBase * intervals[idx];
+    l.osc1.frequency.setValueAtTime(l.osc1.frequency.value, t);
+    l.osc1.frequency.linearRampToValueAtTime(targetFreq, t + 8);
+    l.osc2.frequency.setValueAtTime(l.osc2.frequency.value, t);
+    l.osc2.frequency.linearRampToValueAtTime(targetFreq, t + 8);
+  });
+  if (MUS.corruptOsc) {
+    MUS.corruptOsc.frequency.setValueAtTime(MUS.corruptOsc.frequency.value, t);
+    MUS.corruptOsc.frequency.linearRampToValueAtTime(newBase * 1.414, t + 8);
+  }
+}
+
+// Clear event — brief brightening of master gain
+function musClearStab(tot) {
+  if (!MUS.active || !MUS.masterGain) return;
+  var t = MUS.ctx.currentTime;
+  MUS.masterGain.gain.setValueAtTime(MUS.masterGain.gain.value, t);
+  MUS.masterGain.gain.linearRampToValueAtTime(0.28, t + 0.1);
+  MUS.masterGain.gain.linearRampToValueAtTime(0.16, t + 0.6);
+}
+
+// Breach — sustained swell
+function musBreachStab(tot) {
+  if (!MUS.active || !MUS.masterGain) return;
+  var t = MUS.ctx.currentTime;
+  MUS.masterGain.gain.setValueAtTime(MUS.masterGain.gain.value, t);
+  MUS.masterGain.gain.linearRampToValueAtTime(0.34, t + 0.15);
+  MUS.masterGain.gain.linearRampToValueAtTime(0.16, t + 1.2);
+}
+
+// Threat — corrupt layer spikes
+function musThreatSting() {
+  if (!MUS.active || !MUS.corruptGain) return;
+  var t = MUS.ctx.currentTime;
+  MUS.corruptGain.gain.setValueAtTime(MUS.corruptGain.gain.value, t);
+  MUS.corruptGain.gain.linearRampToValueAtTime(0.1, t + 0.3);
+  MUS.corruptGain.gain.linearRampToValueAtTime(0.02, t + 2.5);
+}
+
+
+
+
+
+// ── SECTOR DEFINITIONS ────────────────────────
+// 6 sectors unlocked by score thresholds.
+// Each has: name, lore subtitle, score threshold, gw border colour,
+// extra initial corrupt cells, threat weight overrides, music base freq.
+const SECTORS = [
+  {
+    n:1, name:'RESIDENTIAL ARCHIVE', sub:'CIVILIAN DATA — SECTOR 01',
+    threshold:0, bodyClass:'s1',
+    gwColor:'rgba(0,255,225,.25)', gwGlow:'0 0 24px rgba(0,255,225,.12)',
+    initCorrupt:0, musBase:55,
+    desc:'The first layer. Names. Addresses. Ordinary lives.',
+    threats:null  // use defaults
+  },
+  {
+    n:2, name:'FINANCIAL CORE', sub:'ENCRYPTED LEDGER — SECTOR 02',
+    threshold:3000, bodyClass:'s2',
+    gwColor:'rgba(77,166,255,.3)', gwGlow:'0 0 24px rgba(77,166,255,.1)',
+    initCorrupt:3, musBase:50,
+    desc:'The money. Cold, blue, precise. The locks multiply.',
+    threats:{corrupt:35,rowlock:35,surge:15,scramble:10,gift:5}
+  },
+  {
+    n:3, name:'MEDICAL VAULT', sub:'PATIENT RECORDS — SECTOR 03',
+    threshold:8000, bodyClass:'s3',
+    gwColor:'rgba(170,255,68,.3)', gwGlow:'0 0 24px rgba(170,255,68,.08)',
+    initCorrupt:5, musBase:46,
+    desc:'Births. Deaths. Treatment histories. The most human data.',
+    threats:{corrupt:45,rowlock:20,surge:15,scramble:15,gift:5}
+  },
+  {
+    n:4, name:'COMMS RELAY', sub:'SIGNAL FRAGMENTS — SECTOR 04',
+    threshold:16000, bodyClass:'s4',
+    gwColor:'rgba(255,102,34,.3)', gwGlow:'0 0 24px rgba(255,102,34,.1)',
+    initCorrupt:6, musBase:41,
+    desc:'Messages that never arrived. ECHO-9 is loudest here.',
+    threats:{corrupt:30,rowlock:25,surge:10,scramble:30,gift:5}
+  },
+  {
+    n:5, name:'RESEARCH LEVEL', sub:'CLASSIFIED — SECTOR 05',
+    threshold:28000, bodyClass:'s5',
+    gwColor:'rgba(204,68,255,.35)', gwGlow:'0 0 28px rgba(204,68,255,.15)',
+    initCorrupt:8, musBase:37,
+    desc:'Where the Null was first recorded. Then erased.',
+    threats:{corrupt:50,rowlock:20,surge:15,scramble:10,gift:5}
+  },
+  {
+    n:6, name:'THE NULLZONE', sub:'VOID SECTOR — FINAL',
+    threshold:44000, bodyClass:'s6',
+    gwColor:'rgba(255,255,255,.2)', gwGlow:'0 0 32px rgba(255,255,255,.08)',
+    initCorrupt:10, musBase:33,
+    desc:'The Null itself. Nothing here was meant to survive.',
+    threats:{corrupt:55,rowlock:15,surge:10,scramble:15,gift:5}
+  },
+];
+
+var activeSector = SECTORS[0];
+
+function getSectorForScore(s){
+  var sec = SECTORS[0];
+  for(var i=0;i<SECTORS.length;i++){if(s>=SECTORS[i].threshold)sec=SECTORS[i];}
+  return sec;
+}
+
+function applySector(sec, announce){
+  activeSector = sec;
+  currentSector = sec.n - 1;
+
+  // Body class for CSS theming
+  document.body.className = sec.bodyClass;
+
+  // Grid wrapper border/glow
+  var gw = $('gw');
+  gw.style.borderColor = sec.gwColor;
+  gw.style.boxShadow   = sec.gwGlow;
+
+  // Update top-bar label
+  $('xplabel').textContent = 'SECTOR ' + String(sec.n).padStart(2,'0');
+
+  // Retune music
+  musRetune(sec.musBase);
+
+  if(announce){
+    $('sa-num').textContent  = 'SECTOR ' + String(sec.n).padStart(2,'0');
+    $('sa-name').textContent = sec.name;
+    $('sa-sub').textContent  = sec.desc;
+    $('sa-name').style.color = sec.gwColor;
+    var ann = $('sector-announce');
+    ann.classList.add('show');
+    setTimeout(function(){ann.classList.remove('show');}, 3200);
+    sfxSurge(); // repurpose surge sound as sector fanfare
+  }
+}
+
+function checkSectorTransition(){
+  if(!alive) return;
+  var sec = getSectorForScore(score);
+  if(sec.n !== activeSector.n){
+    applySector(sec, true);
+    // Seed extra corrupt cells for new sector difficulty
+    var toAdd = sec.initCorrupt - activeSector.initCorrupt;
+    if(toAdd > 0){
+      var tries = 0, added = 0;
+      while(added < toAdd && tries < 60){
+        var r=Math.floor(Math.random()*RR), c=Math.floor(Math.random()*CC);
+        if(board[r][c]===null){board[r][c]='X';added++;}
+        tries++;
+      }
+      renderBoard();
+    }
+    // Override threat weights for this sector
+    if(sec.threats){
+      THREATS[0].w = sec.threats.corrupt;
+      THREATS[1].w = sec.threats.rowlock;
+      THREATS[2].w = sec.threats.surge;
+      THREATS[3].w = sec.threats.scramble;
+      THREATS[4].w = sec.threats.gift;
+    }
+  }
+}
+
+
+// ── HELPERS ───────────────────────────────────
+function $(id){return document.getElementById(id)}
+function cellEl(r,c){return document.querySelector('#gr .cell[data-r="'+r+'"][data-c="'+c+'"]')}
+
+function pickThreat(){
+  var tot=THREATS.reduce(function(s,t){return s+t.w},0),r=Math.random()*tot;
+  for(var i=0;i<THREATS.length;i++){r-=THREATS[i].w;if(r<=0)return THREATS[i];}
+  return THREATS[0];
+}
+
+// ── INIT ──────────────────────────────────────
+function init(daily){
+  isDaily = !!daily;
+  board=[];
+  for(var r=0;r<RR;r++){board.push([]);for(var c=0;c<CC;c++)board[r].push(null);}
+  score=0;streak=0;maxStreak=0;selP=null;
+  placed=0;surgeLeft=0;lockedRows={};alive=true;
+  threatsThisSession=0;efficiencyBonus=0;
+  currentSector=0;activeSector=SECTORS[0];
+  document.body.className=SECTORS[0].bodyClass;
+  // Reset threat weights to defaults
+  THREATS[0].w=40;THREATS[1].w=25;THREATS[2].w=15;THREATS[3].w=15;THREATS[4].w=5;
+
+  nextT=pickThreat();
+  nextThreatAt=8;
+
+  best=getStore('nz_best',0);
+  loadLB();
+
+  setScore(0);
+  $('bd').textContent=best.toLocaleString();
+
+  buildGrid();
+  applySector(SECTORS[0], false);
+  if(isDaily) newQueueSeeded();
+  else newQueue();
+
+  updateBar(0);
+  updateTN();
+  updateStreak();
+  updateXPBar();
+  status(isDaily?'DAILY SECTOR — ONE ATTEMPT':'SELECT A FRAGMENT TO PLACE');
+  $('sb').classList.remove('show');
+
+  // Start generative music
+  if (MUS.active) musStop();
+  setTimeout(musInit, 300); // slight delay so AudioContext is warm
+
+  // Update play streak
+  var lastDay=getStore('nz_last_day','');
+  var today=new Date().toDateString();
+  if(lastDay!==today){
+    var yesterday=new Date(); yesterday.setDate(yesterday.getDate()-1);
+    if(lastDay===yesterday.toDateString()) playStreak++;
+    else playStreak=1;
+    setStore('nz_play_streak',playStreak);
+    setStore('nz_last_day',today);
+  }
+}
+
+// ── GRID ──────────────────────────────────────
+function buildGrid(){
+  var g=$('gr');g.innerHTML='';
+  for(var r=0;r<RR;r++){
+    for(var c=0;c<CC;c++){
+      var d=document.createElement('div');
+      d.className='cell';d.dataset.r=r;d.dataset.c=c;
+      g.appendChild(d);
+    }
+  }
+  g.onclick=function(e){
+    var cell=e.target.closest('.cell');if(!cell)return;
+    onCell(parseInt(cell.dataset.r),parseInt(cell.dataset.c));
+  };
+  g.addEventListener('touchend',function(e){
+    e.preventDefault();
+    var t=e.changedTouches[0];
+    var el=document.elementFromPoint(t.clientX,t.clientY);
+    var cell=el&&el.closest('.cell');
+    if(cell)onCell(parseInt(cell.dataset.r),parseInt(cell.dataset.c));
+  },{passive:false});
+}
+
+function renderBoard(){
+  for(var r=0;r<RR;r++){
+    for(var c=0;c<CC;c++){
+      var el=cellEl(r,c);if(!el)continue;
+      el.className='cell';
+      var v=board[r][c];
+      if(v==='X')el.classList.add('xc');
+      else if(lockedRows[r])el.classList.add('lk');
+      else if(v==='c')el.classList.add('fc');
+      else if(v==='m')el.classList.add('fm');
+      else if(v==='y')el.classList.add('fy');
+    }
+  }
+}
+
+// ── PIECE QUEUE ───────────────────────────────
+function randPiece(){return JSON.parse(JSON.stringify(PIECES[Math.floor(Math.random()*PIECES.length)]))}
+
+var _dseed=0; // daily seed cursor
+function newQueue(){
+  queue=[randPiece(),randPiece(),randPiece()];
+  selP=null;clearHL();renderQueue();
+}
+function newQueueSeeded(){
+  // Deterministic queue from daily seed — same for every player today
+  var baseSeed=dailySeed()+placed*31;
+  queue=[
+    JSON.parse(JSON.stringify(PIECES[Math.floor(seededRand(baseSeed)*PIECES.length)])),
+    JSON.parse(JSON.stringify(PIECES[Math.floor(seededRand(baseSeed+1)*PIECES.length)])),
+    JSON.parse(JSON.stringify(PIECES[Math.floor(seededRand(baseSeed+2)*PIECES.length)])),
+  ];
+  selP=null;clearHL();renderQueue();
+}
+
+function renderQueue(){
+  for(var i=0;i<3;i++){
+    var sl=$('s'+i);sl.innerHTML='';sl.className='psl';
+    var p=queue[i];
+    if(!p){sl.classList.add('used');continue;}
+    var mg=document.createElement('div');
+    mg.className='pmg';
+    mg.style.gridTemplateColumns='repeat('+p.s[0].length+',9px)';
+    for(var r=0;r<p.s.length;r++){
+      for(var c=0;c<p.s[r].length;c++){
+        var d=document.createElement('div');d.className='pm';
+        if(p.s[r][c])d.classList.add(p.c==='m'?'pm2':p.c==='y'?'py2':'pc2');
+        mg.appendChild(d);
+      }
+    }
+    sl.appendChild(mg);
+    if(selP===i)sl.classList.add('sel');
+  }
+}
+
+function wireSlots(){
+  for(var i=0;i<3;i++){
+    (function(ii){
+      var sl=$('s'+ii);
+      sl.onclick=function(){selSlot(ii)};
+      sl.addEventListener('touchend',function(e){e.preventDefault();selSlot(ii)},{passive:false});
+    })(i);
+  }
+}
+
+function selSlot(i){
+  if(!alive||queue[i]===null)return;
+  selP=(selP===i)?null:i;
+  renderQueue();clearHL();
+  status(selP!==null?'TAP GRID TO PLACE FRAGMENT':'SELECT A FRAGMENT TO PLACE');
+}
+
+// ── PLACEMENT ─────────────────────────────────
+function canPlace(p,sr,sc){
+  for(var r=0;r<p.s.length;r++){
+    for(var c=0;c<p.s[r].length;c++){
+      if(!p.s[r][c])continue;
+      var br=sr+r,bc=sc+c;
+      if(br>=RR||bc>=CC||br<0||bc<0)return false;
+      if(board[br][bc]!==null)return false;
+      if(lockedRows[br])return false;
+    }
+  }
+  return true;
+}
+
+function onCell(r,c){
+  if(!alive)return;
+  if(selP===null){status('SELECT A FRAGMENT FIRST');return;}
+  var p=queue[selP];
+  if(!canPlace(p,r,c)){sfxBad();flashBad(r,c,p);return;}
+  doPlace(p,r,c);
+  queue[selP]=null;selP=null;clearHL();
+  if(queue.every(function(x){return x===null})){
+    if(isDaily)newQueueSeeded();else newQueue();
+  } else renderQueue();
+  placed++;
+  updateBar(placed);
+  checkT();
+  checkOver();
+}
+
+function doPlace(p,sr,sc){
+  sfxPlace();
+  for(var r=0;r<p.s.length;r++)
+    for(var c=0;c<p.s[r].length;c++)
+      if(p.s[r][c])board[sr+r][sc+c]=p.c;
+  renderBoard();
+  setTimeout(function(){checkClears(sr,sc,p)},80);
+}
+
+// ── CLEAR DETECTION ───────────────────────────
+function checkClears(br,bc,p){
+  var rows={},cols={};
+  for(var r=0;r<p.s.length;r++)
+    for(var c=0;c<p.s[r].length;c++)
+      if(p.s[r][c]){rows[br+r]=1;cols[bc+c]=1;}
+  var cr=[],cc2=[];
+  for(var rk in rows){var ri=parseInt(rk);if(rowFull(ri)&&!lockedRows[ri])cr.push(ri);}
+  for(var ck in cols){var ci2=parseInt(ck);if(colFull(ci2))cc2.push(ci2);}
+  var tot=cr.length+cc2.length;
+  if(!tot){renderBoard();return;}
+  var surge=surgeLeft>0;
+  var cells={};
+  cr.forEach(function(rr){for(var c=0;c<CC;c++)cells[rr+','+c]=1;});
+  cc2.forEach(function(cc3){for(var r=0;r<RR;r++)cells[r+','+cc3]=1;});
+  for(var k in cells){
+    var pt2=k.split(',');var el=cellEl(parseInt(pt2[0]),parseInt(pt2[1]));
+    if(el)el.classList.add(surge?'scl':'cl');
+  }
+  setTimeout(function(){
+    cr.forEach(function(rr){for(var c=0;c<CC;c++)board[rr][c]=null;});
+    cc2.forEach(function(cc4){for(var r=0;r<RR;r++)board[r][cc4]=null;});
+    var mult=surge?3:1;
+    var pts=tot===1?100:tot===2?300:tot===3?700:1500;
+    pts*=mult;
+    // Survival bonus: +25 per threat survived up to this point
+    var survBonus=threatsThisSession*25;
+    if(tot>=2){streak++;if(streak>maxStreak)maxStreak=streak;if(streak>=3)pts=Math.floor(pts*1.5);sfxBreach();musBreachStab(tot);showCombo(tot,mult,streak);}
+    else{sfxClear();musClearStab(tot);}
+    if(surge){surgeLeft--;if(surgeLeft<=0)$('sb').classList.remove('show');}
+    addPts(pts);
+    renderBoard();
+  },430);
+}
+
+function rowFull(r){for(var c=0;c<CC;c++){var v=board[r][c];if(!v||v==='X')return false;}return true;}
+function colFull(c){for(var r=0;r<RR;r++){var v=board[r][c];if(!v||v==='X')return false;}return true;}
+
+function addPts(pts){
+  score+=pts;setScore(score);
+  if(score>best){best=score;setStore('nz_best',best);$('bd').textContent=best.toLocaleString();}
+  if(pts>0)floatTxt('+'+pts,pts>=700?'var(--y)':'var(--c)');
+  checkSectorTransition();
+}
+
+function setScore(v){
+  var el=$('sd');el.textContent=v.toLocaleString();
+  el.classList.add('bump');setTimeout(function(){el.classList.remove('bump')},100);
+}
+
+// ── EFFICIENCY SCORE ──────────────────────────
+function calcEfficiency(){
+  // Points per placement — higher = more strategic play
+  if(!placed)return 0;
+  return Math.round(score/placed);
+}
+
+// ── XP CALCULATION ────────────────────────────
+function calcXP(sessionScore, efficiency, threats){
+  var base=Math.floor(sessionScore/100);
+  var effBonus=Math.floor(efficiency/10);
+  var threatBonus=threats*15;
+  var streakBonus=playStreak>=7?Math.floor(base*.2):playStreak>=3?Math.floor(base*.1):0;
+  var dailyBonus=isDaily?Math.floor(base*.5):0;
+  return base+effBonus+threatBonus+streakBonus+dailyBonus;
+}
+
+// ── XP BAR ────────────────────────────────────
+function updateXPBar(){
+  var tier=getTier(seasonXP);
+  var next=getNextTier(seasonXP);
+  $('ranklabel').textContent=tier.name;
+  if(next){
+    var pct=Math.min(100,(seasonXP-tier.xp)/(next.xp-tier.xp)*100);
+    $('xpfill').style.width=pct+'%';
+  } else {
+    $('xpfill').style.width='100%';
+  }
+}
+
+function awardXP(xp){
+  var prevTier=getTier(seasonXP).name;
+  seasonXP+=xp;
+  setStore('nz_sxp',seasonXP);
+  var newTier=getTier(seasonXP).name;
+  updateXPBar();
+  if(newTier!==prevTier){
+    // Rank up!
+    sfxRankUp();
+    $('xppop-rank').textContent=newTier;
+    $('xppop-sub').textContent='RANK UP!';
+    $('xppop').classList.add('show');
+    setTimeout(function(){$('xppop').classList.remove('show')},2800);
+  }
+}
+
+// ── THREAT SYSTEM ─────────────────────────────
+function tInterval(){return score<5000?8:score<15000?7:score<30000?6:5;}
+function updateBar(n){
+  var prev=nextThreatAt-tInterval();
+  var pct=Math.min(100,(n-prev)/tInterval()*100);
+  $('tf').style.width=pct+'%';
+  pct>70?$('tf').classList.add('d'):$('tf').classList.remove('d');
+}
+function updateTN(){$('tn').textContent=nextT?'NEXT: '+nextT.name:'MONITORING...';}
+
+function checkT(){
+  if(placed>=nextThreatAt){
+    fireT(nextT);
+    threatsThisSession++;
+    nextT=pickThreat();
+    nextThreatAt=placed+tInterval();
+    updateTN();
+    updateBar(placed);
+  }
+}
+
+function fireT(t){
+  sfxThreat();musThreatSting();showPopup(t);
+  if(t.id==='corrupt'){
+    var n=2+Math.floor(Math.random()*2),tries=0;
+    while(n&&tries<40){var r=Math.floor(Math.random()*RR),c=Math.floor(Math.random()*CC);if(board[r][c]===null){board[r][c]='X';n--;}tries++;}
+    renderBoard();
+  } else if(t.id==='rowlock'){
+    var cands=[];for(var r=0;r<RR;r++)if(!lockedRows[r])cands.push(r);
+    if(cands.length){var row=cands[Math.floor(Math.random()*cands.length)];lockedRows[row]=1;renderBoard();schedUnlock(row,3);}
+  } else if(t.id==='surge'){
+    sfxSurge();surgeLeft=2;$('sb').classList.add('show');
+  } else if(t.id==='scramble'){
+    for(var i=0;i<3;i++)if(queue[i]!==null)queue[i]=randPiece();
+    selP=null;renderQueue();status('FRAGMENTS SCRAMBLED');
+  } else if(t.id==='gift'){
+    sfxGift();floatTxt('FIREWALL GIFT!','var(--g)');
+    var cx=[];for(var r=0;r<RR;r++)for(var c=0;c<CC;c++)if(board[r][c]==='X')cx.push([r,c]);
+    if(cx.length){var pick=cx[Math.floor(Math.random()*cx.length)];board[pick[0]][pick[1]]=null;renderBoard();}
+  }
+}
+
+function schedUnlock(row,n){
+  var start=placed;
+  var iv=setInterval(function(){
+    if(!alive){clearInterval(iv);return;}
+    if(placed-start>=n){delete lockedRows[row];renderBoard();clearInterval(iv);}
+  },200);
+}
+
+// ── GAME OVER ─────────────────────────────────
+function checkOver(){
+  if(!alive)return;
+  for(var i=0;i<3;i++){
+    if(queue[i]===null)continue;
+    for(var r=0;r<RR;r++)for(var c=0;c<CC;c++)if(canPlace(queue[i],r,c))return;
+  }
+  gameOver();
+}
+
+function gameOver(){
+  alive=false;sfxOver();
+  musStop();
+
+  var isNew=score>best;
+  if(isNew){best=score;setStore('nz_best',best);}
+
+  var eff=calcEfficiency();
+  var xpEarned=calcXP(score,eff,threatsThisSession);
+
+  // Record in leaderboard
+  var today=new Date().toDateString();
+  // Store session data — leaderboard entry will be committed after name input
+  lastSessionData = {score:score,eff:eff,threats:threatsThisSession,date:today,daily:isDaily,isNew:isNew,xpEarned:xpEarned};
+
+  // leaderboard commit happens in commitToLeaderboard() after name entry
+
+  // dailyRank and awardXP are now handled in commitToLeaderboard()
+
+  // Populate game over screen
+
+
+  // Show name entry screen instead of game over directly
+  $('ne-score-big').textContent = score.toLocaleString();
+  $('ne-sub').textContent = isDaily ? 'DAILY SECTOR COMPLETE' : 'BREACH SCORE LOGGED';
+  $('ne-newbest').style.display = isNew ? 'block' : 'none';
+  $('ne-input').value = '';
+  updateNeCharCount();
+  $('ne-ov').classList.remove('hid');
+}
+
+// ── HIGHLIGHT ─────────────────────────────────
+function clearHL(){document.querySelectorAll('.cell.hl,.cell.ih').forEach(function(e){e.classList.remove('hl','ih')})}
+function flashBad(r,c,p){
+  for(var dr=0;dr<p.s.length;dr++)
+    for(var dc=0;dc<p.s[dr].length;dc++){
+      if(!p.s[dr][dc])continue;
+      var el=cellEl(r+dr,c+dc);
+      if(el){el.classList.add('ih');(function(e){setTimeout(function(){e.classList.remove('ih')},400)})(el);}
+    }
+}
+
+$('gr').onmouseover=function(e){
+  if(!alive||selP===null)return;
+  var cell=e.target.closest('.cell');if(!cell)return;
+  var r=parseInt(cell.dataset.r),c=parseInt(cell.dataset.c),p=queue[selP];
+  clearHL();var ok=canPlace(p,r,c);
+  for(var dr=0;dr<p.s.length;dr++)
+    for(var dc=0;dc<p.s[dr].length;dc++){
+      if(!p.s[dr][dc])continue;
+      var el=cellEl(r+dr,c+dc);if(el)el.classList.add(ok?'hl':'ih');
+    }
+};
+$('gr').onmouseleave=clearHL;
+
+// ── LEADERBOARD ───────────────────────────────
+var currentLBMode='all';
+
+function showLB(mode){
+  currentLBMode=mode;
+  ['all','season','daily'].forEach(function(m){
+    $('lm-'+m).classList.toggle('active',m===mode);
+  });
+  var data=lb[mode];
+  var today=new Date().toDateString();
+  var html='';
+  if(!data.length){html='<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--td);font-size:10px;letter-spacing:.15em">NO ENTRIES YET</td></tr>';}
+  else{
+    data.slice(0,15).forEach(function(e,i){
+      var badge='';
+      if(i===0)badge='<span class="badge gold">GOLD</span>';
+      else if(i===1)badge='<span class="badge silver">SILVER</span>';
+      else if(i===2)badge='<span class="badge bronze">BRONZE</span>';
+      var isMe=(e.name==='YOU');
+      html+='<tr class="'+(isMe?'me':'')+'"><td>'+(i+1)+'</td><td>'+e.name+(e.daily?'<span style="color:var(--g);font-size:8px"> ★</span>':'')+' <span style="color:var(--td);font-size:8px">'+e.date+'</span></td><td class="score-col">'+e.score.toLocaleString()+'</td><td class="rank-badge">'+badge+'</td></tr>';
+    });
+  }
+  $('lbbody').innerHTML=html;
+  $('lo').classList.remove('hid');
+}
+
+// ── SCORE CARD ────────────────────────────────
+function copyScore(){
+  var text='NULLZONE // '+new Date().toDateString()+'\n'+
+    'BREACH SCORE: '+score.toLocaleString()+'\n'+
+    'EFFICIENCY: '+calcEfficiency()+' pts/move\n'+
+    'THREATS SURVIVED: '+threatsThisSession+'\n'+
+    'MAX STREAK: '+maxStreak+'\n'+
+    'SEASON RANK: '+getTier(seasonXP).name+'\n'+
+    'CAN YOU BREACH DEEPER?';
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(function(){
+      $('sccopib').textContent='COPIED!';
+      setTimeout(function(){$('sccopib').textContent='COPY SCORE'},2000);
+    });
+  }
+}
+
+// ── UI HELPERS ────────────────────────────────
+function status(m){$('stl').textContent=m}
+function updateStreak(){
+  var el=$('stk');el.textContent='STREAK: '+streak;
+  el.className=streak>0?'on':'';
+}
+function showCombo(clears,mult,str){
+  var labels=['','','BREACH','DEEP BREACH','NULLZONE'];
+  var lbl=labels[Math.min(clears,4)]||'NULLZONE';
+  $('cf').textContent=lbl+(mult>1?' ×'+mult:'')+(str>1?' ×'+str:'');
+  $('cf').classList.add('show');setTimeout(function(){$('cf').classList.remove('show')},1500);
+  updateStreak();
+}
+function floatTxt(txt,col){
+  var el=document.createElement('div');el.className='pt';
+  el.textContent=txt;el.style.color=col;el.style.fontSize='13px';el.style.letterSpacing='.1em';
+  el.style.left=(20+Math.random()*60)+'vw';el.style.top='45vh';
+  document.body.appendChild(el);setTimeout(function(){el.remove()},950);
+}
+function showPopup(t){
+  $('pi').textContent=t.icon;$('pn').textContent=t.name;$('pd').textContent=t.desc;
+  $('tp').classList.add('show');setTimeout(function(){$('tp').classList.remove('show')},2200);
+}
+
+// ── BUTTONS ───────────────────────────────────
+$('startb').onclick=function(){$('os').classList.add('hid');init(false);wireSlots()};
+$('dailyb').onclick=function(){
+  var today=new Date().toDateString();
+  var doneToday=lb.daily.some(function(e){return e.date===today&&e.daily});
+  if(doneToday){
+    floatTxt('DAILY DONE!','var(--g)');return;
+  }
+  $('os').classList.add('hid');init(true);wireSlots();
+};
+$('restartb').onclick=function(){$('og').classList.add('hid');init(false);wireSlots()};
+$('shareb').onclick=function(){$('og').classList.add('hid');$('sc-ov').classList.remove('hid')};
+$('lbb').onclick=function(){loadLB();showLB('all')};
+$('lbb2').onclick=function(){loadLB();showLB('all')};
+$('ttl').onclick=function(){if(!$('lo').classList.contains('hid'))$('lo').classList.add('hid');else{loadLB();showLB('all');}};
+$('lcloseb').onclick=function(){$('lo').classList.add('hid')};
+$('sccloseb').onclick=function(){$('sc-ov').classList.add('hid');$('og').classList.remove('hid')};
+$('sccopib').onclick=copyScore;
+
+// Seed some example leaderboard entries for first launch
+function seedExampleLB(){
+  if(lb.all.length)return;
+  var examples=[
+    {name:'ECHO-9',score:12400,eff:88,threats:8,date:'Today',daily:false},
+    {name:'PHANTOM_7',score:9800,eff:72,threats:6,date:'Today',daily:true},
+    {name:'MARA.SYS',score:7200,eff:64,threats:5,date:'Today',daily:false},
+    {name:'ARCOS_AI',score:5100,eff:55,threats:4,date:'Today',daily:false},
+    {name:'SHARD_01',score:3800,eff:44,threats:3,date:'Today',daily:true},
+  ];
+  lb.all=examples.slice();lb.season=examples.slice(0,4);lb.daily=examples.filter(function(e){return e.daily});
+  saveLB();
+}
+
+// ── NAME ENTRY & LEADERBOARD COMMIT ──────────
+function updateNeCharCount(){
+  var v=$('ne-input').value;
+  $('ne-charcount').textContent=12-v.length;
+}
+
+function commitToLeaderboard(playerName){
+  if(!lastSessionData)return;
+  var d=lastSessionData;
+  playerName=(playerName||'GHOST').toUpperCase().replace(/[^A-Z0-9_\-\.]/g,'').substring(0,12)||'GHOST';
+
+  var entry={name:playerName,score:d.score,eff:d.eff,threats:d.threats,date:d.date,daily:d.daily};
+
+  lb.all.push(entry);lb.all.sort(function(a,b){return b.score-a.score;});lb.all=lb.all.slice(0,100);
+  lb.season.push(entry);lb.season.sort(function(a,b){return b.score-a.score;});lb.season=lb.season.slice(0,50);
+  if(d.daily){
+    lb.daily=lb.daily.filter(function(e){return e.date!==d.date;});
+    lb.daily.push(entry);lb.daily.sort(function(a,b){return b.score-a.score;});lb.daily=lb.daily.slice(0,20);
+  }
+  saveLB();
+
+  // Recalculate daily rank with actual name
+  var dailyRank='—';
+  if(d.daily){
+    var myPos=lb.daily.findIndex(function(e){return e.name===playerName&&e.score===d.score;});
+    dailyRank=myPos>=0?'#'+(myPos+1):'—';
+  }
+
+  // Award XP
+  awardXP(d.xpEarned);
+
+  // Populate game over screen
+  $('fs').textContent=d.score.toLocaleString();
+  $('feff').textContent=d.eff;
+  $('fb').textContent=best.toLocaleString();
+  $('fxp').textContent='+'+d.xpEarned+' XP';
+  $('frank').textContent=getTier(seasonXP).name;
+  $('fdrank').textContent=dailyRank;
+  $('nb').style.display=(d.isNew&&d.score>0)?'block':'none';
+  $('daily-badge').style.display=d.daily?'block':'none';
+
+  $('sc-score').textContent=d.score.toLocaleString();
+  $('sc-eff').textContent=d.eff+' pts/move';
+  $('sc-threats').textContent=d.threats;
+  $('sc-streak').textContent=maxStreak;
+  $('sc-rank').textContent=getTier(seasonXP).name;
+  $('sc-tier').textContent=d.daily?'DAILY SECTOR':'SESSION RANK';
+  $('sc-date').textContent=d.date;
+
+  $('ne-ov').classList.add('hid');
+  $('og').classList.remove('hid');
+}
+
+// Wire name-entry elements after DOM is ready
+function wireNameEntry(){
+  var ni=$('ne-input');
+  if(!ni)return;
+  ni.oninput=function(){
+    this.value=this.value.toUpperCase().replace(/[^A-Z0-9_\-\.]/g,'');
+    updateNeCharCount();
+  };
+  ni.onkeydown=function(e){if(e.key==='Enter')submitName();};
+  $('ne-submit').onclick=submitName;
+  $('ne-skip').onclick=function(){commitToLeaderboard('GHOST');};
+}
+window.addEventListener('DOMContentLoaded',wireNameEntry);
+
+function submitName(){
+  var v=$('ne-input').value.trim();
+  commitToLeaderboard(v||'GHOST');
+}
+
+loadLB();seedExampleLB();
+updateXPBar();
+</script>
+
+<!-- NAME ENTRY OVERLAY -->
+<div class="ov hid" id="ne-ov">
+  <div class="ot">MISSION COMPLETE</div>
+  <div id="ne-score-big">0</div>
+  <div id="ne-sub">BREACH SCORE LOGGED</div>
+  <div id="ne-newbest">★ NEW RECORD ★</div>
+  <div class="ne-input-wrap">
+    <div class="ne-label">ENTER OPERATIVE ID</div>
+    <input id="ne-input" maxlength="12" placeholder="OPERATIVE NAME" autocomplete="off" autocorrect="off" spellcheck="false" />
+    <div class="ne-chars"><span id="ne-charcount">12</span> CHARS REMAINING</div>
+  </div>
+  <button class="btn" id="ne-submit">SUBMIT TO LEADERBOARD</button>
+  <button class="ne-skip" id="ne-skip">skip &rarr; continue anonymously</button>
+</div>
+
+</body>
+</html>
