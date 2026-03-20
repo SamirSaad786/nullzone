@@ -887,7 +887,7 @@ function wireSlots(){
     (function(ii){
       var sl=$('s'+ii);
       sl.onclick=function(){selSlot(ii)};
-      sl.addEventListener('touchend',function(e){e.preventDefault();selSlot(ii)},{passive:false});
+      sl.ontouchend=function(e){e.preventDefault();selSlot(ii)};
     })(i);
   }
 }
