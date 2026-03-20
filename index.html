@@ -1235,19 +1235,7 @@ $('lcloseb').onclick=function(){$('lo').classList.add('hid')};
 $('sccloseb').onclick=function(){$('sc-ov').classList.add('hid');$('og').classList.remove('hid')};
 $('sccopib').onclick=copyScore;
 
-// Seed some example leaderboard entries for first launch
-function seedExampleLB(){
-  if(lb.all.length)return;
-  var examples=[
-    {name:'ECHO-9',score:12400,eff:88,threats:8,date:'Today',daily:false},
-    {name:'PHANTOM_7',score:9800,eff:72,threats:6,date:'Today',daily:true},
-    {name:'MARA.SYS',score:7200,eff:64,threats:5,date:'Today',daily:false},
-    {name:'ARCOS_AI',score:5100,eff:55,threats:4,date:'Today',daily:false},
-    {name:'SHARD_01',score:3800,eff:44,threats:3,date:'Today',daily:true},
-  ];
-  lb.all=examples.slice();lb.season=examples.slice(0,4);lb.daily=examples.filter(function(e){return e.daily});
-  saveLB();
-}
+
 
 // ── NAME ENTRY & LEADERBOARD COMMIT ──────────
 function updateNeCharCount(){
@@ -1321,7 +1309,7 @@ function submitName(){
   commitToLeaderboard(v||'GHOST');
 }
 
-loadLB();seedExampleLB();
+loadLB();
 updateXPBar();
 </script>
 
