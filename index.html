@@ -166,6 +166,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 #ne-submit{margin-top:6px}
 .ne-skip{font-size:9px;letter-spacing:.2em;color:var(--td);cursor:pointer;padding:8px;border:none;background:none;font-family:'Share Tech Mono',monospace}
 .ne-skip:hover{color:var(--tx)}
+.ne-chars{font-size:9px;letter-spacing:.2em;color:var(--td);text-align:center;margin-top:2px}
 
 /* ── SECTOR THEMES ── */
 #gw{transition:box-shadow 2s,border-color 2s}
@@ -887,7 +888,9 @@ function wireSlots(){
     (function(ii){
       var sl=$('s'+ii);
       sl.onclick=function(){selSlot(ii)};
-      sl.ontouchend=function(e){e.preventDefault();selSlot(ii)};
+      sl.addEventListener('touchend',function(e){e.preventDefault();selSlot(ii)},{passive:false});
+      sl.onmouseenter=function(){if(alive&&queue[ii]!==null&&selP===null)sl.style.boxShadow='0 0 12px rgba(0,255,225,.2)'};
+      sl.onmouseleave=function(){sl.style.boxShadow=''};
     })(i);
   }
 }
@@ -965,8 +968,9 @@ function checkClears(br,bc,p){
     pts*=mult;
     // Survival bonus: +25 per threat survived up to this point
     var survBonus=threatsThisSession*25;
+    pts+=survBonus;
     if(tot>=2){streak++;if(streak>maxStreak)maxStreak=streak;if(streak>=3)pts=Math.floor(pts*1.5);sfxBreach();musBreachStab(tot);showCombo(tot,mult,streak);}
-    else{sfxClear();musClearStab(tot);}
+    else{streak=0;updateStreak();sfxClear();musClearStab(tot);}
     if(surge){surgeLeft--;if(surgeLeft<=0)$('sb').classList.remove('show');}
     addPts(pts);
     renderBoard();
@@ -1219,6 +1223,7 @@ function showPopup(t){
 // ── BUTTONS ───────────────────────────────────
 $('startb').onclick=function(){$('os').classList.add('hid');init(false);wireSlots()};
 $('dailyb').onclick=function(){
+  loadLB();
   var today=new Date().toDateString();
   var doneToday=lb.daily.some(function(e){return e.date===today&&e.daily});
   if(doneToday){
@@ -1226,7 +1231,7 @@ $('dailyb').onclick=function(){
   }
   $('os').classList.add('hid');init(true);wireSlots();
 };
-$('restartb').onclick=function(){$('og').classList.add('hid');init(false);wireSlots()};
+$('restartb').onclick=function(){$('og').classList.add('hid');$('ne-ov').classList.add('hid');$('sc-ov').classList.add('hid');init(false);wireSlots()};
 $('shareb').onclick=function(){$('og').classList.add('hid');$('sc-ov').classList.remove('hid')};
 $('lbb').onclick=function(){loadLB();showLB('all')};
 $('lbb2').onclick=function(){loadLB();showLB('all')};
