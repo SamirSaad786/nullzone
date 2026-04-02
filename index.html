@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>NULLZONE</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -309,6 +310,41 @@ body.s6 .xc{background:#400000!important}
 // ══════════════════════════════════════════════
 
 const RR=8, CC=8;
+
+// ── SUPABASE ──────────────────────────────────
+const SB_URL = 'https://cpjsvvtsoqgrhalmmema.supabase.co';
+const SB_KEY = 'sb_publishable_DnIcmyTbO3GICBu4FYHOGQ_WW8w7p-8';
+const supa = supabase.createClient(SB_URL, SB_KEY);
+
+async function sbPushScore(entry) {
+  try {
+    await supa.from('nullzone_scores').insert({
+      name:             entry.name,
+      score:            entry.score,
+      efficiency:       entry.eff     || 0,
+      threats_survived: entry.threats  || 0,
+      max_streak:       entry.maxStreak|| 0,
+      is_daily:         entry.daily   || false,
+      date:             entry.date    || new Date().toDateString()
+    });
+  } catch(e) { /* silent — localStorage already saved */ }
+}
+
+async function sbFetchScores(mode) {
+  try {
+    var today = new Date().toDateString();
+    var q = supa.from('nullzone_scores')
+      .select('name,score,efficiency,threats_survived,max_streak,is_daily,date')
+      .order('score', {ascending:false})
+      .limit(mode==='daily'?20:mode==='season'?50:100);
+    if (mode==='daily') q = q.eq('is_daily',true).eq('date',today);
+    var {data,error} = await q;
+    if (error||!data) return null;
+    return data.map(function(r){
+      return {name:r.name,score:r.score,eff:r.efficiency,threats:r.threats_survived,maxStreak:r.max_streak,daily:r.is_daily,date:r.date};
+    });
+  } catch(e) { return null; }
+}
 
 // ── SEASON TIERS ──────────────────────────────
 const TIERS=[
@@ -1156,27 +1192,40 @@ $('gr').onmouseleave=clearHL;
 // ── LEADERBOARD ───────────────────────────────
 var currentLBMode='all';
 
-function showLB(mode){
-  currentLBMode=mode;
-  ['all','season','daily'].forEach(function(m){
-    $('lm-'+m).classList.toggle('active',m===mode);
-  });
-  var data=lb[mode];
-  var today=new Date().toDateString();
+function renderLBRows(data){
   var html='';
-  if(!data.length){html='<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--td);font-size:10px;letter-spacing:.15em">NO ENTRIES YET</td></tr>';}
-  else{
+  if(!data||!data.length){
+    html='<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--td);font-size:10px;letter-spacing:.15em">NO ENTRIES YET</td></tr>';
+  } else {
     data.slice(0,15).forEach(function(e,i){
       var badge='';
       if(i===0)badge='<span class="badge gold">GOLD</span>';
       else if(i===1)badge='<span class="badge silver">SILVER</span>';
       else if(i===2)badge='<span class="badge bronze">BRONZE</span>';
-      var isMe=(e.name==='YOU');
-      html+='<tr class="'+(isMe?'me':'')+'"><td>'+(i+1)+'</td><td>'+e.name+(e.daily?'<span style="color:var(--g);font-size:8px"> ★</span>':'')+' <span style="color:var(--td);font-size:8px">'+e.date+'</span></td><td class="score-col">'+e.score.toLocaleString()+'</td><td class="rank-badge">'+badge+'</td></tr>';
+      html+='<tr><td>'+(i+1)+'</td><td>'+e.name+(e.daily?'<span style="color:var(--g);font-size:8px"> ★</span>':'')+' <span style="color:var(--td);font-size:8px">'+e.date+'</span></td><td class="score-col">'+e.score.toLocaleString()+'</td><td class="rank-badge">'+badge+'</td></tr>';
     });
   }
   $('lbbody').innerHTML=html;
+}
+
+function showLB(mode){
+  currentLBMode=mode;
+  ['all','season','daily'].forEach(function(m){
+    $('lm-'+m).classList.toggle('active',m===mode);
+  });
   $('lo').classList.remove('hid');
+  // Show local data immediately while we fetch
+  renderLBRows(lb[mode]);
+  // Then fetch from Supabase and update
+  $('lbbody').innerHTML='<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--td);font-size:10px;letter-spacing:.15em">CONNECTING...</td></tr>';
+  sbFetchScores(mode).then(function(rows){
+    if(rows && rows.length) {
+      renderLBRows(rows);
+    } else {
+      // Supabase returned nothing — fall back to localStorage
+      renderLBRows(lb[mode]);
+    }
+  });
 }
 
 // ── SCORE CARD ────────────────────────────────
@@ -1262,6 +1311,9 @@ function commitToLeaderboard(playerName){
     lb.daily.push(entry);lb.daily.sort(function(a,b){return b.score-a.score;});lb.daily=lb.daily.slice(0,20);
   }
   saveLB();
+
+  // Push to Supabase (fire and forget — localStorage is the source of truth for local state)
+  sbPushScore({name:playerName,score:d.score,eff:d.eff,threats:d.threats,maxStreak:maxStreak,daily:d.daily,date:d.date});
 
   // Recalculate daily rank with actual name
   var dailyRank='—';
