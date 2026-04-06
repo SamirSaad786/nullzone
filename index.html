@@ -333,11 +333,15 @@ async function sbPushScore(entry) {
 async function sbFetchScores(mode) {
   try {
     var today = new Date().toDateString();
+    var now = new Date();
+    var monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toDateString();
     var q = supa.from('nullzone_scores')
       .select('name,score,efficiency,threats_survived,max_streak,is_daily,date')
       .order('score', {ascending:false})
       .limit(mode==='daily'?20:mode==='season'?50:100);
     if (mode==='daily') q = q.eq('is_daily',true).eq('date',today);
+    // Season = current calendar month
+    if (mode==='season') q = q.gte('created_at', new Date(now.getFullYear(), now.getMonth(), 1).toISOString());
     var {data,error} = await q;
     if (error||!data) return null;
     return data.map(function(r){
@@ -922,7 +926,10 @@ function renderQueue(){
 function wireSlots(){
   for(var i=0;i<3;i++){
     (function(ii){
-      var sl=$('s'+ii);
+      // Clone node to strip any previously attached touchend listeners
+      var old=$('s'+ii);
+      var sl=old.cloneNode(true);
+      old.parentNode.replaceChild(sl,old);
       sl.onclick=function(){selSlot(ii)};
       sl.addEventListener('touchend',function(e){e.preventDefault();selSlot(ii)},{passive:false});
       sl.onmouseenter=function(){if(alive&&queue[ii]!==null&&selP===null)sl.style.boxShadow='0 0 12px rgba(0,255,225,.2)'};
@@ -965,7 +972,8 @@ function onCell(r,c){
   placed++;
   updateBar(placed);
   checkT();
-  checkOver();
+  // Defer checkOver until after full clear animation chain (80ms place + 430ms anim + buffer)
+  setTimeout(checkOver, CHECK_OVER_DELAY);
 }
 
 function doPlace(p,sr,sc){
@@ -1077,8 +1085,9 @@ function awardXP(xp){
 // ── THREAT SYSTEM ─────────────────────────────
 function tInterval(){return score<5000?8:score<15000?7:score<30000?6:5;}
 function updateBar(n){
-  var prev=nextThreatAt-tInterval();
-  var pct=Math.min(100,(n-prev)/tInterval()*100);
+  var interval=tInterval();
+  var prev=Math.max(0, nextThreatAt-interval);
+  var pct=Math.min(100,(n-prev)/interval*100);
   $('tf').style.width=pct+'%';
   pct>70?$('tf').classList.add('d'):$('tf').classList.remove('d');
 }
@@ -1095,20 +1104,26 @@ function checkT(){
   }
 }
 
+// Safe delay for all checkOver calls — longer than full clear chain (80ms + 430ms anim)
+var CHECK_OVER_DELAY = 560;
+
 function fireT(t){
   sfxThreat();musThreatSting();showPopup(t);
   if(t.id==='corrupt'){
     var n=2+Math.floor(Math.random()*2),tries=0;
     while(n&&tries<40){var r=Math.floor(Math.random()*RR),c=Math.floor(Math.random()*CC);if(board[r][c]===null){board[r][c]='X';n--;}tries++;}
     renderBoard();
+    setTimeout(checkOver, CHECK_OVER_DELAY);
   } else if(t.id==='rowlock'){
     var cands=[];for(var r=0;r<RR;r++)if(!lockedRows[r])cands.push(r);
     if(cands.length){var row=cands[Math.floor(Math.random()*cands.length)];lockedRows[row]=1;renderBoard();schedUnlock(row,3);}
+    setTimeout(checkOver, CHECK_OVER_DELAY);
   } else if(t.id==='surge'){
     sfxSurge();surgeLeft=2;$('sb').classList.add('show');
   } else if(t.id==='scramble'){
     for(var i=0;i<3;i++)if(queue[i]!==null)queue[i]=randPiece();
     selP=null;renderQueue();status('FRAGMENTS SCRAMBLED');
+    setTimeout(checkOver, CHECK_OVER_DELAY);
   } else if(t.id==='gift'){
     sfxGift();floatTxt('FIREWALL GIFT!','var(--g)');
     var cx=[];for(var r=0;r<RR;r++)for(var c=0;c<CC;c++)if(board[r][c]==='X')cx.push([r,c]);
@@ -1127,10 +1142,13 @@ function schedUnlock(row,n){
 // ── GAME OVER ─────────────────────────────────
 function checkOver(){
   if(!alive)return;
+  // Safety: if queue is entirely empty refill hasn't happened yet — don't evaluate
+  if(queue.every(function(x){return x===null;}))return;
   for(var i=0;i<3;i++){
     if(queue[i]===null)continue;
     for(var r=0;r<RR;r++)for(var c=0;c<CC;c++)if(canPlace(queue[i],r,c))return;
   }
+  if(!alive)return; // re-check in case a concurrent timeout already fired gameOver
   gameOver();
 }
 
@@ -1270,7 +1288,7 @@ function showPopup(t){
 }
 
 // ── BUTTONS ───────────────────────────────────
-$('startb').onclick=function(){$('os').classList.add('hid');init(false);wireSlots()};
+$('startb').onclick=function(){$('os').classList.add('hid');$('lo').classList.add('hid');init(false);wireSlots()};
 $('dailyb').onclick=function(){
   loadLB();
   var today=new Date().toDateString();
@@ -1278,9 +1296,9 @@ $('dailyb').onclick=function(){
   if(doneToday){
     floatTxt('DAILY DONE!','var(--g)');return;
   }
-  $('os').classList.add('hid');init(true);wireSlots();
+  $('os').classList.add('hid');$('lo').classList.add('hid');init(true);wireSlots();
 };
-$('restartb').onclick=function(){$('og').classList.add('hid');$('ne-ov').classList.add('hid');$('sc-ov').classList.add('hid');init(false);wireSlots()};
+$('restartb').onclick=function(){$('og').classList.add('hid');$('ne-ov').classList.add('hid');$('sc-ov').classList.add('hid');$('lo').classList.add('hid');init(false);wireSlots()};
 $('shareb').onclick=function(){$('og').classList.add('hid');$('sc-ov').classList.remove('hid')};
 $('lbb').onclick=function(){loadLB();showLB('all')};
 $('lbb2').onclick=function(){loadLB();showLB('all')};
@@ -1300,6 +1318,7 @@ function updateNeCharCount(){
 function commitToLeaderboard(playerName){
   if(!lastSessionData)return;
   var d=lastSessionData;
+  lastSessionData = null; // prevent double-commit if buttons fire twice
   playerName=(playerName||'GHOST').toUpperCase().replace(/[^A-Z0-9_\-\.]/g,'').substring(0,12)||'GHOST';
 
   var entry={name:playerName,score:d.score,eff:d.eff,threats:d.threats,date:d.date,daily:d.daily};
